@@ -6,6 +6,8 @@ import EventsList from './EventliteList'
 import EventForm from './EventForm'
 import FormErrors from './FormErrors'
 
+import validations from '../validations'
+
 class Eventlite extends React.Component {
   constructor(props) {
     super(props)
@@ -19,13 +21,26 @@ class Eventlite extends React.Component {
     }
   }
 
+  static formValidations = {
+    title: [
+      (value) => { return(validations.checkMinLength(value, 2)) }
+    ],
+    start_datetime: [
+      (value) => { return(validations.checkMinLength(value, 1)) },
+      (value) => { return(validations.timeShouldBeInTheFuture(value)) }
+    ],
+    location: [
+      (value) => { return(validations.checkMinLength(value, 1)) }
+    ]
+  }
+
   handleInput = e => {
     e.preventDefault()
     const name = e.target.name
     const value = e.target.value
     const newState = {}
     newState[name] = {...this.state[name], value: value}
-    this.setState(newState, () => this.validateField(name, value))
+    this.setState(newState, () => this.validateField(name, value, Eventlite.formValidations[name]))
   }
 
   handleSubmit = e => {
@@ -61,37 +76,21 @@ class Eventlite extends React.Component {
   }
 
   validateForm() {
-   this.setState(formValid: this.state.title.valid && this.state.location.valid && this.state.start_datetime.valid)
+    this.setState({formValid: this.state.title.valid && this.state.location.valid && this.state.start_datetime.valid})
   }
 
-  validateField(fieldName, fieldValue) {
+  validateField(fieldName, fieldValue, fieldValidations) {
     let fieldValid = true
-    let errors = []
-    switch(fieldName) {
-      case 'title':
-      if(fieldValue.length <= 2) {
-        errors = errors.concat(["is too short (minimum is 3 characters)"])
-        fieldValid = false
+    let errors = fieldValidations.reduce((errors, validation) => {
+      let [valid, fieldError] = validation(fieldName)
+      if (!valid) {
+        errors = errors.concat([fieldError])
       }
-      break;
-
-      case 'location':
-      if(fieldValue.length === 0) {
-        errors = errors.concat(["can't be blank"])
-        fieldValid = false
-      }
-      break;
-
-      case 'start_datetime':
-      if(fieldValue.length === 0) {
-        errors = errors.concat(["can't be blank"])
-        fieldValid = false
-      } else if(Date.parse(fieldValue) <= Date.now()) {
-        errors = errors.concat(["can't be in the past"])
-        fieldValid = false
-      }
-      break;
-    }
+      return(errors)
+    }, [])
+    
+    fieldValid = errors.length === 0
+    
     const newState = {formErrors: {...this.state.formErrors, [fieldName]: errors}}
     newState[fieldName] = {...this.state[fieldName], valid: fieldValid}
     this.setState(newState, this.validateForm)
