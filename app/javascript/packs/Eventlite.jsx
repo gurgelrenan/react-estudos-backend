@@ -1,12 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import axios from 'axios'
+import validations from '../validations'
 
 import EventsList from './EventliteList'
 import EventForm from './EventForm'
 import FormErrors from './FormErrors'
-
-import validations from '../validations'
 
 class Eventlite extends React.Component {
   constructor(props) {
@@ -23,7 +22,7 @@ class Eventlite extends React.Component {
 
   static formValidations = {
     title: [
-      (value) => { return(validations.checkMinLength(value, 2)) }
+      (value) => { return(validations.checkMinLength(value, 3)) }
     ],
     start_datetime: [
       (value) => { return(validations.checkMinLength(value, 1)) },
@@ -56,15 +55,36 @@ class Eventlite extends React.Component {
     })
     .then(response => {
       this.addNewEvent(response.data)
-      this.resetFormErrors()
+      this.resetFormErrors();
     })
     .catch(error => {
-      this.setState({formErrors: error.response.data})
       console.log(error.response.data)
+      this.setState({formErrors: error.response.data})
     })
   }
 
-  resetFormErrors() {
+  validateField(fieldName, fieldValue, fieldValidations) {
+    let fieldValid = true
+    let errors = fieldValidations.reduce((errors, validation) => {
+      let [valid, fieldError] = validation(fieldValue)
+      if(!valid) {
+        errors = errors.concat([fieldError])
+      }
+      return(errors);
+    }, []);
+
+    fieldValid = errors.length === 0
+
+    const newState = {formErrors: {...this.state.formErrors, [fieldName]: errors}}
+    newState[fieldName] = {...this.state[fieldName], valid: fieldValid}
+    this.setState(newState, this.validateForm)
+  }
+
+  validateForm() {
+    this.setState({formValid: this.state.title.valid && this.state.location.valid && this.state.start_datetime.valid})
+  }
+
+  resetFormErrors () {
     this.setState({formErrors: {}})
   }
 
@@ -75,34 +95,13 @@ class Eventlite extends React.Component {
     this.setState({events: events})
   }
 
-  validateForm() {
-    this.setState({formValid: this.state.title.valid && this.state.location.valid && this.state.start_datetime.valid})
-  }
-
-  validateField(fieldName, fieldValue, fieldValidations) {
-    let fieldValid = true
-    let errors = fieldValidations.reduce((errors, validation) => {
-      let [valid, fieldError] = validation(fieldName)
-      if (!valid) {
-        errors = errors.concat([fieldError])
-      }
-      return(errors)
-    }, [])
-    
-    fieldValid = errors.length === 0
-    
-    const newState = {formErrors: {...this.state.formErrors, [fieldName]: errors}}
-    newState[fieldName] = {...this.state[fieldName], valid: fieldValid}
-    this.setState(newState, this.validateForm)
-  }
-
   render() {
     return (
       <div>
         <FormErrors formErrors = {this.state.formErrors} />
         <EventForm handleSubmit = {this.handleSubmit}
           handleInput = {this.handleInput}
-          formValid= {this.state.formValid}
+          formValid={this.state.formValid}
           title = {this.state.title.value}
           start_datetime = {this.state.start_datetime.value}
           location = {this.state.location.value} />
@@ -115,9 +114,8 @@ class Eventlite extends React.Component {
 document.addEventListener('DOMContentLoaded', () => {
   const node = document.getElementById('events_data')
   const data = JSON.parse(node.getAttribute('data'))
-
   ReactDOM.render(
     <Eventlite events={data} />,
-    document.body.appendChild(document.createElement('div'))
+    document.body.appendChild(document.createElement('div')),
   )
 })
