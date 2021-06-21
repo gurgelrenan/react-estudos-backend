@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import axios from 'axios'
+import PropTypes from 'prop-types'
 import validations from '../validations'
 
 import EventsList from './EventliteList'
@@ -109,6 +110,10 @@ class Eventlite extends React.Component {
       </div>
     )
   }
+}
+
+Eventlite.propTypes = {
+  events: PropTypes.array.isRequired
 }
 
 document.addEventListener('DOMContentLoaded', () => {
