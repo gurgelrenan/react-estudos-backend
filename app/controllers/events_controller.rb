@@ -1,6 +1,7 @@
 class EventsController < ApplicationController
   def index
     @events = Event.order(:start_datetime)
+    render json: @events
   end
 
   def create
